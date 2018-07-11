@@ -1,0 +1,366 @@
+import pandas as pd
+import datetime
+import time
+import calendar
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+
+def get_city():
+    '''Asks the user for a city and returns the filename for that city's bike share data.
+    Args:
+        none
+    Returns:
+        city's bikeshare data
+    '''
+    city = input('\nHello! Let\'s explore some US bikeshare data!\n'
+                 'Would you like to see data for Chicago, New York, or Washington?\n').title()
+    if city == 'Chicago':
+        return 'chicago.csv'
+    elif city == 'New York':
+        return 'new_york_city.csv'
+    elif city == 'Washington':
+        return 'washington.csv'
+    else:
+        print("\nSorry, please select Chicago, New York, or Washington.")
+        return get_city()
+
+def get_time_period():
+    '''Asks the user for a time period and returns the specified filter.
+    Args:
+        none
+    Returns:
+            First value: the type of filter period
+            Second value: the specific filter period
+    '''
+    time_period = input('\nWould you like to filter the data by month, day, or not at'
+                        ' all? Type "none" for no time filter.\n').lower()
+    if time_period == 'month':
+        return ['month', get_month()]
+    elif time_period == 'day':
+        return ['day', get_day()]
+    elif time_period == 'none':
+        return ['none', 'no filter']
+    else:
+        print("\nSorry, please specify month, day or none.")
+        return get_time_period()
+
+def get_month():
+    '''Asks the user for a month and returns the specified month.
+    Args:
+        none.
+    Returns:
+        String representation of month number
+    '''
+    month = input('\nWhich month? January, February, March, April, May, or June?\n').title()
+    if month == 'January':
+        return '01'
+    elif month == 'February':
+        return '02'
+    elif month == 'March':
+        return '03'
+    elif month == 'April':
+        return '04'
+    elif month == 'May':
+        return '05'
+    elif month == 'June':
+        return '06'
+    else:
+        print("\nSorry, please specify a month between January and June.")
+        return get_month()
+
+def get_day():
+    '''Asks the user for a day of the week
+    Args:
+        none
+    Returns:
+        the day of the week as an integer
+    '''
+    day_of_week = input('\nWhich day of the week? Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, or Sunday?\n').title()
+    if day_of_week == 'Monday':
+        return 0
+    elif day_of_week == 'Tuesday':
+        return 1
+    elif day_of_week == 'Wednesday':
+        return 2
+    elif day_of_week == 'Thursday':
+        return 3
+    elif day_of_week == 'Friday':
+        return 4
+    elif day_of_week == 'Saturday':
+        return 5
+    elif day_of_week == 'Sunday':
+        return 6
+    else:
+        print("\nSorry, please specify a day of the week.")
+        return get_day()
+
+def popular_month(df):
+    '''This function returns the month with the most trips
+    Args:
+        dataframe (df) of bikeshare data
+    Returns:
+        String that specifies which month had the most amount of trips
+    '''
+    #Count the number of rows that have a particular month value.
+    trips_month = df.groupby('Month')['Start Time'].count()
+    #Sort the results highest to lowest and then return the name of the month that was highest (first in sorted list)
+    return "Most popular month for start time: " + calendar.month_name[int(trips_month.sort_values(ascending=False).index[0])]
+
+
+def popular_day(df):
+    '''This function returns the day of the week with the most trips
+    Args:
+        dataframe (df) of bikeshare data
+    Returns:
+        String that says which day had the most trips
+    '''
+    #Count the number of rows that have a particular Day of Week value.
+    trips_weekday = df.groupby('Day of Week')['Start Time'].count()
+    #Sort the results highest to lowest and then return the name of the day of the week that was highest (first in sorted list)
+    return "Most popular day of the week (beginning of ride): " + calendar.day_name[int(trips_weekday.sort_values(ascending=False).index[0])]
+
+
+def popular_hour(df):
+    '''This function returns the hour of the day with the most trips
+    Args:
+        dataframe (df) of bikeshare data
+    Returns:
+        String that specifies which hour had the most trips
+    '''
+    #Count the number of rows that have a particular Hour of Day value.
+    trips_hour = df.groupby('Hour of Day')['Start Time'].count()
+    #Sort the results highest to lowest and then return the hour of the day that was highest (first in sorted list)
+    most_pop_hour = trips_hour.sort_values(ascending=False).index[0]
+    d = datetime.datetime.strptime(most_pop_hour, "%H")
+    return "Most popular hour for beginning of ride: " + d.strftime("%I %p")
+
+def trip_duration(df):
+    '''This function returns the total trip duration and average trip duration
+    Args:
+        dataframe (df) of bikeshare data
+    Returns:
+        Two string values:
+            First value: String that specifies the total trip duration
+            Second value: String that says the average trip duration
+                '''
+    tot_trip_dur = df['Trip Duration'].sum()
+    avg_trip_dur = df['Trip Duration'].mean()
+    m, s = divmod(tot_trip_dur, 60)
+    h, m = divmod(m, 60)
+    d, h = divmod(h, 24)
+    y, d = divmod(d, 365)
+    tot_trip_dur = "\nTotal trip duration: %d years %02d days %02d hrs %02d min %02d sec" % (y, d, h, m, s)
+    m, s = divmod(avg_trip_dur, 60)
+    h, m = divmod(m, 60)
+    avg_trip_dur = "Average trip duration: %d hrs %02d min %02d sec" % (h, m, s)
+    return [tot_trip_dur, avg_trip_dur]
+
+def popular_stations(df):
+    '''This function returns the most popular start and end stations
+    Args:
+        dataframe (df) of bikeshare data
+    Returns:
+        Two string values:
+            First value: name of the most popular start station and how many trips originated there and what % of tot
+            Second value: name of the most popular end station and % of tot
+    '''
+    start_station = df.groupby('Start Station')['Start Station'].count()
+    end_station = df.groupby('End Station')['End Station'].count()
+    start_station_sorted = start_station.sort_values(ascending=False)
+    end_station_sorted = end_station.sort_values(ascending=False)
+    tot_trips = df['Start Station'].count()
+    start_station_pop = "\nMost popular start station: " + start_station_sorted.index[0] + " (" + str(start_station_sorted[0]) + " trips, " + '{0:.2f}%'.format(((start_station_sorted[0]/tot_trips) * 100)) + " of trips)"
+    end_station_pop = "Most popular end station: " + end_station_sorted.index[0] + " (" + str(end_station_sorted[0]) + " trips, " + '{0:.2f}%'.format(((end_station_sorted[0]/tot_trips) * 100)) + " of trips)"
+    return [start_station_pop, end_station_pop]
+
+
+def popular_trip(df):
+    '''This function returns the most popular trip (i.e. combination of start station and end station)
+    Args:
+        dataframe (df) of bikeshare data
+    Returns:
+        String that says the most popular combination of start and end station, count of trips and % of tot
+    '''
+    trip_counts = df.groupby(['Start Station', 'End Station'])['Start Time'].count()
+    trip_station_sorted = trip_counts.sort_values(ascending=False)
+    tot_trips = df['Start Station'].count()
+    return "Most popular trip: " + "\n  Start station: " + str(trip_station_sorted.index[0][0]) + "\n  End station: " + str(trip_station_sorted.index[0][1]) + "\n  (" + str(trip_station_sorted[0]) +  " trips, " + '{0:.2f}%'.format(((trip_station_sorted[0]/tot_trips) * 100)) + " of trips)"
+
+
+def users(df):
+    '''This function returns the number of trips by type of user
+    Args:
+        dataframe (df) of bikeshare data
+    Returns (pandas):
+        index of each row is the user type and how many trips that user type made
+    '''
+    user_type = df.groupby('User Type')['User Type'].count()
+    return user_type
+
+
+def gender(df):
+    '''This function returns the number of trips by gender
+    Args:
+        dataframe (df) of bikeshare data
+    Returns (pandas):
+        the index of each row is the gender and how many trips that gender made
+    '''
+    gender = df.groupby('Gender')['Gender'].count()
+    return gender
+
+
+def birth_year(df):
+    '''This function displays the oldest, the most recent, and the most common birth years
+    Args:
+        dataframe (df) of bikeshare data
+    Returns:
+            First value: the earliest birth year of a user
+            Second value: the most recent birth year of a user
+            Third value: yhe most common birth year of a user
+    '''
+    earliest_birth_year = "Earliest birth year: " + str(int(df['Birth Year'].min()))
+    most_recent_birth_year = "Most recent birth year: " + str(int(df['Birth Year'].max()))
+    birth_year = df.groupby('Birth Year')['Birth Year'].count()
+    birth_year_sorted = birth_year.sort_values(ascending=False)
+    tot_trips = df['Birth Year'].count()
+    most_common_birth_year = "Most common birth year: " + str(int(birth_year_sorted.index[0])) + " (" + str(birth_year_sorted.iloc[0]) + " trips, " + '{0:.2f}%'.format(((birth_year_sorted.iloc[0]/tot_trips) * 100)) + " of trips)"
+    return [earliest_birth_year, most_recent_birth_year, most_common_birth_year]
+
+
+def display_data(df, current_line):
+    '''Displays five lines of data if the user specifies that they would like to.
+    After displaying five lines, ask the user if they would like to see five more.
+    Continues asking until they say stop.
+    Args:
+        df: dataframe of bikeshare data
+    Returns:
+        If the user says yes then this function returns the next five lines
+            of the dataframe and then asks the question again by calling this
+            function again (recursive)
+        If the user says no then this function returns, but without any value
+    '''
+    display = input('\nWould you like to view individual trip data?'
+                    ' Type \'yes\' or \'no\'.\n')
+    display = display.lower()
+    if display == 'yes':
+        print(df.iloc[current_line:current_line+5])
+        current_line += 5
+        return display_data(df, current_line)
+    if display == 'no':
+        return
+    else:
+        print("\nI'm sorry, I'm not sure if you wanted to see more data or not. Let's try again.")
+        return display_data(df, current_line)
+
+
+def summary():
+    '''calculates and outputs responses based on the user's imput.
+    Args:
+        none.
+    Returns:
+        none.
+    '''
+    # Filter by city (Chicago, New York, Washington)
+    city = get_city()
+    city_df = pd.read_csv(city)
+
+    def get_day_of_week(str_date):
+        '''Takes a date in the format yyyy-mm-dd and returns an integer
+            represention of the day of the week, e.g. for Monday it returns 0
+        Args:
+            str_date: date in the format yyyy-mm-dd
+        Returns:
+            (int) Integer represention of the day of the week,
+                e.g. for Monday it returns 0
+        '''
+    #parse string in format yyyy-mm-dd and create date object based on those values.
+        date_obj = datetime.date(int(str_date[0:4]), int(str_date[5:7]), int(str_date[8:10]))
+        return date_obj.weekday() #return the day of the week that that date was
+    #store day of week, month, and hour of day values for each
+    #row in their own columns. Makes it easier to groupby those values later
+    city_df['Day of Week'] = city_df['Start Time'].apply(get_day_of_week)
+    city_df['Month'] = city_df['Start Time'].str[5:7]
+    city_df['Hour of Day'] = city_df['Start Time'].str[11:13]
+
+    # Filter by time period that the user specifies (month, day, none)
+    time_period = get_time_period()
+    filter_period = time_period[0]
+    filter_period_value = time_period[1]
+    filter_period_label = 'No filter'
+
+    if filter_period == 'none':
+        filtered_df = city_df
+    elif filter_period == 'month':
+        filtered_df = city_df.loc[city_df['Month'] == filter_period_value]
+        filter_period_label = calendar.month_name[int(filter_period_value)]
+    elif filter_period == 'day':
+        filtered_df = city_df.loc[city_df['Day of Week'] == filter_period_value]
+        filter_period_label = calendar.day_name[int(filter_period_value)]
+
+    # Header that tells you the city and any filters that were applied
+    print('\n')
+    print(city[:-4].upper().replace("_", " ") + ' -- ' + filter_period_label.upper())
+
+    print(city_df.hist())
+    
+	print('Total trips: ' + "{:,}".format(filtered_df['Start Time'].count()))
+
+    if filter_period == 'none' or filter_period == 'day':
+        print(popular_month(filtered_df))
+
+    if filter_period == 'none' or filter_period == 'month':
+        print(popular_day(filtered_df))
+
+    print(popular_hour(filtered_df))
+
+    trip_duration_stats = trip_duration(filtered_df)
+    print(trip_duration_stats[0])
+    print(trip_duration_stats[1])
+
+    print(popular_trip(filtered_df))
+
+
+    most_popular_stations = popular_stations(filtered_df)
+    print(most_popular_stations[0])
+    print(most_popular_stations[1])
+
+    print('')
+    print(users(filtered_df))
+
+    if city == 'chicago.csv' or city == 'new_york_city.csv': #only those two files have this data
+        # What are the counts of gender?
+        print('')
+        print(gender(filtered_df))
+        birth_year_data = birth_year(filtered_df)
+        print('')
+        print(birth_year_data[0])
+        print(birth_year_data[1])
+        print(birth_year_data[2])
+
+    display_data(filtered_df, 0)
+
+
+
+    def restart():
+        '''restarts the program
+        Args:
+            none.
+        Returns:
+        '''
+        restart = input('\nWould you like to restart? Type \'yes\' or \'no\'.\n')
+        if restart.lower() == 'yes':
+            summary()
+        elif restart.lower() == 'no':
+            return
+        else:
+            print("\nPlease type yes or no.")
+            return restart_question()
+
+    restart()
+
+
+if __name__ == "__main__":
+    summary()
