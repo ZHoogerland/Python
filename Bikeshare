@@ -304,7 +304,8 @@ def summary():
     print('\n')
     print(city[:-4].upper().replace("_", " ") + ' -- ' + filter_period_label.upper())
 
-    print(city_df.hist())
+    city_df.hist()
+    plt.savefig('path_to_file.png')
     
 	print('Total trips: ' + "{:,}".format(filtered_df['Start Time'].count()))
 
